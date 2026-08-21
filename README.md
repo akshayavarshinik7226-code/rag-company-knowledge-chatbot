@@ -1,28 +1,44 @@
 # rag-company-knowledge-chatbot
 A Retrieval-Augmented Generation (RAG) chatbot designed to retrieve relevant information from company documents and generate grounded responses using an AI model.
 Project Architecture
+
 User
+
   ↓
 Streamlit Frontend
+
   ↓
 FastAPI Backend
+  
   ↓
 Document Retrieval
+  
   ↓
 Relevant Context
+  
   ↓
 LLM
+  
   ↓
 Answer
 Technologies Used
+
 1.Python
+
 2.FastAPI
+
 3.Streamlit
+
 4.LangChain
+
 5.RAG
+
 6.LLM
+
 7.Git
+
 8.GitHub
+
 Task progress
 ## Project Progress
 
