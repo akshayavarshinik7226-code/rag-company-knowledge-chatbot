@@ -1,61 +1,50 @@
-# RAG-Company-Knowledge-Chatbot
-A Retrieval-Augmented Generation (RAG) chatbot designed to retrieve relevant information from company documents and generate grounded responses using an AI model.
+# RAG Company Knowledge Chatbot
 
-Project Architecture
+A Retrieval-Augmented Generation (RAG) chatbot that retrieves relevant information from company documents and uses an AI model to generate grounded responses.
+
+##  Project Overview
+
+This project is being built to understand and implement a complete RAG pipeline from document ingestion to intelligent question answering.
+
+The chatbot will allow users to ask questions about a collection of company-related documents and receive answers based on the retrieved information.
+
+##  Project Architecture
 
 User
-
- ↓
-  
+↓
 Streamlit Frontend
-
-  ↓
-  
+↓
 FastAPI Backend
-  
- ↓
- 
+↓
+Document Processing
+↓
 Document Retrieval
-  
-  ↓
-  
+↓
 Relevant Context
-  
-  ↓
-
+↓
 LLM
-  
-  ↓
+↓
+Grounded Answer
 
-Answer
+## 🛠️ Technologies Used
 
+- Python
+- FastAPI
+- Streamlit
+- LangChain
+- RAG
+- Large Language Models
+- Git & GitHub
 
-Technologies Used
+## 📂 Project Structure
 
-1.Python
+```text
+backend/
+├── main.py
+└── ingest.py
 
-2.FastAPI
+frontend/
+└── app.py
 
-3.Streamlit
-
-4.LangChain
-
-5.RAG
-
-6.LLM
-
-7.Git
-
-8.GitHub
-
-## Project Progress
-
-- [x] Task 1 — Environment Setup
-- [x] Task 2 — LLM & RAG Concepts
-- [x] Task 3 — FastAPI + Streamlit
-- [x] Task 4 — Document Ingestion
-- [ ] Task 5 — Document Chunking
-- [ ] Task 6 — Embeddings
-- [ ] Task 7 — Vector Database
-- [ ] Task 8 — Retrieval
-- [ ] Task 9 — RAG Generation
+data/
+└── Sample knowledge-base documents
