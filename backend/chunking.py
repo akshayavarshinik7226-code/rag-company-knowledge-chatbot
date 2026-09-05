@@ -1,58 +1,105 @@
-from pathlib import Path
-
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-
-from ingest import load_document
-
-
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+from ingest import load_all_documents
 
 
-def main():
+def create_chunks():
+
     # Create the text splitter
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=500,
         chunk_overlap=50
     )
 
-    total_chunks = 0
+    # Load documents from Task 4
+    documents = load_all_documents()
 
-    # Process every file in the data folder
-    for file_path in DATA_DIR.iterdir():
+    # Split documents into chunks
+    chunks = splitter.split_documents(documents)
 
-        if not file_path.is_file():
-            continue
+    print("Total documents:", len(documents))
+    print("Total chunks:", len(chunks))
 
-        # Load the document using Task 4's function
-        documents = load_document(file_path)
+    # Display first 5 chunks for manual review
+    print("\n========== SAMPLE CHUNKS ==========\n")
 
-        if not documents:
-            continue
+    for i, chunk in enumerate(chunks[:5], start=1):
 
-        # Split the documents into chunks
-        chunks = splitter.split_documents(documents)
-
-        print("\n" + "=" * 60)
-        print(f"File: {file_path.name}")
-        print(f"Original documents/pages: {len(documents)}")
-        print(f"Chunks generated: {len(chunks)}")
-        print("=" * 60)
-
-        # Show first 3 chunks for inspection
-        for i, chunk in enumerate(chunks[:3], start=1):
-            print(f"\nChunk {i}")
-            print("-" * 60)
-            print(f"Characters: {len(chunk.page_content)}")
-            print(f"Source: {chunk.metadata.get('source')}")
-            print(f"Page: {chunk.metadata.get('page')}")
-            print(f"Content:\n{chunk.page_content[:500]}")
-
-        total_chunks += len(chunks)
-
-    print("\n" + "=" * 60)
-    print(f"TOTAL CHUNKS GENERATED: {total_chunks}")
-    print("=" * 60)
+        print(f"--- Chunk {i} ---")
+        print(chunk.page_content)
+        print("\nMetadata:", chunk.metadata)
+        print("\n")
 
 
 if __name__ == "__main__":
-    main()
+    create_chunks()
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+from ingest import load_all_documents
+
+
+def create_chunks():
+
+    # Create the text splitter
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=500,
+        chunk_overlap=50
+    )
+
+    # Load documents from Task 4
+    documents = load_all_documents()
+
+    # Split documents into chunks
+    chunks = splitter.split_documents(documents)
+
+    print("Total documents:", len(documents))
+    print("Total chunks:", len(chunks))
+
+    # Display first 5 chunks for manual review
+    print("\n========== SAMPLE CHUNKS ==========\n")
+
+    for i, chunk in enumerate(chunks[:5], start=1):
+
+        print(f"--- Chunk {i} ---")
+        print(chunk.page_content)
+        print("\nMetadata:", chunk.metadata)
+        print("\n")
+
+
+if __name__ == "__main__":
+    create_chunks()
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+from ingest import load_all_documents
+
+
+def create_chunks():
+
+    # Create the text splitter
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=500,
+        chunk_overlap=50
+    )
+
+    # Load documents from Task 4
+    documents = load_all_documents()
+
+    # Split documents into chunks
+    chunks = splitter.split_documents(documents)
+
+    print("Total documents:", len(documents))
+    print("Total chunks:", len(chunks))
+
+    # Display first 5 chunks for manual review
+    print("\n========== SAMPLE CHUNKS ==========\n")
+
+    for i, chunk in enumerate(chunks[:5], start=1):
+
+        print(f"--- Chunk {i} ---")
+        print(chunk.page_content)
+        print("\nMetadata:", chunk.metadata)
+        print("\n")
+
+
+if __name__ == "__main__":
+    create_chunks()
+
+
+

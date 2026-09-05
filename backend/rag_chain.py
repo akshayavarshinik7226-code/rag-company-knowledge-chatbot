@@ -1,4 +1,3 @@
-```python
 from pathlib import Path
 
 import chromadb
@@ -24,6 +23,8 @@ client = chromadb.PersistentClient(
     path=str(CHROMA_DIR)
 )
 
+
+# Get the existing collection
 collection = client.get_collection(
     name="company_documents"
 )
@@ -74,7 +75,10 @@ Question:
         messages=[
             {
                 "role": "system",
-                "content": "You are a company knowledge assistant. Answer only from the provided context."
+                "content": (
+                    "You are a company knowledge assistant. "
+                    "Answer only from the provided context."
+                )
             },
             {
                 "role": "user",
@@ -90,7 +94,9 @@ Question:
     }
 
 
+# Test the RAG chain directly
 if __name__ == "__main__":
+
     question = "What is the annual leave policy?"
 
     result = answer(question)
@@ -101,4 +107,4 @@ if __name__ == "__main__":
     print("\nSources:")
     for source in result["sources"]:
         print(source)
-```
+    

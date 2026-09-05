@@ -1,7 +1,35 @@
-```python
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel# -----------------------------
+# Upload document endpoint
+# -----------------------------
+@app.post("/upload")
+async def upload_document(file: UploadFile = File(...)):
 
+    try:
+
+        # Location of the data folder
+        BASE_DIR = Path(__file__).resolve().parent.parent
+        DATA_DIR = BASE_DIR / "data"
+
+        # Create data folder if it does not exist
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+        # Save uploaded file
+        file_path = DATA_DIR / file.filename
+
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        return {
+            "message": f"{file.filename} uploaded successfully.",
+            "filename": file.filename
+        }
+
+    except Exception as e:
+
+        return {
+            "message": f"Upload failed: {str(e)}"
+        }
 from rag_chain import answer
 
 
@@ -48,4 +76,4 @@ def chat(request: ChatRequest):
             status_code=500,
             detail=f"Error processing question: {str(e)}"
         )
-```
+
