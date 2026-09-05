@@ -1,70 +1,83 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel# -----------------------------
-# Upload document endpoint
-# -----------------------------
-@app.post("/upload")
-async def upload_document(file: UploadFile = File(...)):
+from pydantic import BaseModel, Field
 
-    try:
+from backend import rag_chain
 
-        # Location of the data folder
-        BASE_DIR = Path(__file__).resolve().parent.parent
-        DATA_DIR = BASE_DIR / "data"
 
-        # Create data folder if it does not exist
-        DATA_DIR.mkdir(parents=True, exist_ok=True)
-
-        # Save uploaded file
-        file_path = DATA_DIR / file.filename
-
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-
-        return {
-            "message": f"{file.filename} uploaded successfully.",
-            "filename": file.filename
-        }
-
-    except Exception as e:
-
-        return {
-            "message": f"Upload failed: {str(e)}"
-        }
-from rag_chain import answer
-
+# --------------------------------
+# Create router
+# --------------------------------
 
 router = APIRouter()
 
 
+# --------------------------------
+# Request model
+# --------------------------------
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+
 class ChatRequest(BaseModel):
     question: str
+    history: list[ChatMessage] = Field(default_factory=list)
+
+
+# --------------------------------
+# Response model
+# --------------------------------
+
+class SourceChunk(BaseModel):
+    source: str
+    page: str | None = None
+    text: str
+    similarity_score: float | None = None
 
 
 class ChatResponse(BaseModel):
     answer: str
-    sources: list[str]
+    sources: list[SourceChunk]
 
+
+# --------------------------------
+# Chat endpoint
+# --------------------------------
 
 @router.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
+
+    # Check for empty question
+    if not request.question.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Question cannot be empty."
+        )
+
     try:
-        # Reject empty questions
-        if not request.question.strip():
-            raise HTTPException(
-                status_code=400,
-                detail="Question cannot be empty."
-            )
+        # Call the RAG chain
+        result = rag_chain.ask_question(
+            request.question,
+            [message.model_dump() for message in request.history],
+        )
 
-        result = answer(request.question)
+        # Make sure we received a dictionary
+        if not isinstance(result, dict):
+            raise Exception("RAG chain returned an invalid response.")
 
-        # Convert source metadata to strings
-        sources = [
-            str(source)
-            for source in result.get("sources", [])
-        ]
+        # Get answer
+        final_answer = result.get("answer", "")
+
+        # Get sources
+        sources = result.get("sources", [])
+
+        # Check answer
+        if not final_answer:
+            final_answer = "I could not find an answer to your question."
 
         return ChatResponse(
-            answer=result["answer"],
+            answer=final_answer,
             sources=sources
         )
 
@@ -75,5 +88,5 @@ def chat(request: ChatRequest):
         raise HTTPException(
             status_code=500,
             detail=f"Error processing question: {str(e)}"
-        )
+        ) from e
 

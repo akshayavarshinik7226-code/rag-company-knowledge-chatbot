@@ -2,89 +2,51 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from pathlib import Path
 import shutil
 
-from chat import router as chat_router
+from backend.chat import router as chat_router
+from backend.ingest import ingest_file
 
 
-# -----------------------------
-# Create FastAPI app
-# -----------------------------
 app = FastAPI(
     title="Company Knowledge Chatbot API",
-    description="Backend API for the RAG Company Knowledge Chatbot",
-    version="1.0.0"
+    description="RAG-based chatbot for company documents",
+    version="1.0"
 )
 
 
-# -----------------------------
-# Include chat router
-# -----------------------------
-app.include_router(chat_router)
-
-
-# -----------------------------
-# Upload directory
-# -----------------------------
-UPLOAD_DIR = Path("uploads")
-UPLOAD_DIR.mkdir(exist_ok=True)
-
-
-# -----------------------------
-# Health check
-# -----------------------------
 @app.get("/ping")
 def ping():
     return {"status": "ok"}
 
 
-# -----------------------------
-# Document upload endpoint
-# -----------------------------
 @app.post("/upload")
 async def upload_document(file: UploadFile = File(...)):
-
-    # Check file type
-    allowed_extensions = {".pdf", ".txt", ".docx"}
-
-    file_extension = Path(file.filename).suffix.lower()
-
-    if file_extension not in allowed_extensions:
-        raise HTTPException(
-            status_code=400,
-            detail="Only PDF, TXT, and DOCX files are supported."
-        )
-
-    # Create safe file path
-    file_path = UPLOAD_DIR / file.filename
-
     try:
+        BASE_DIR = Path(__file__).resolve().parent.parent
+        DATA_DIR = BASE_DIR / "data"
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-        # Save uploaded file
+        filename = Path(file.filename or "").name
+        if not filename or Path(filename).suffix.lower() not in {".pdf", ".txt", ".docx"}:
+            raise HTTPException(status_code=400, detail="Only PDF, TXT, and DOCX files are supported.")
+
+        file_path = DATA_DIR / filename
+
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        # -----------------------------------------
-        # Re-ingest uploaded document
-        # -----------------------------------------
-        #
-        # IMPORTANT:
-        # Replace the next section with the
-        # ingestion function from your Task 7 code.
-        #
-        # Example:
-        #
-        # from ingestion import ingest_document
-        # ingest_document(str(file_path))
-        #
-        # -----------------------------------------
+        indexed_chunks = ingest_file(file_path)
+        if not indexed_chunks:
+            raise HTTPException(status_code=400, detail="No readable text was found in the uploaded document.")
 
         return {
-            "message": f"{file.filename} uploaded successfully.",
-            "filename": file.filename
+            "message": f"{filename} uploaded and indexed successfully.",
+            "filename": filename,
+            "indexed_chunks": indexed_chunks,
         }
-
+    except HTTPException:
+        raise
     except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload and indexing failed: {str(e)}") from e
 
-        raise HTTPException(
-            status_code=500,
-            detail=f"Upload failed: {str(e)}"
-        )
+
+app.include_router(chat_router)
