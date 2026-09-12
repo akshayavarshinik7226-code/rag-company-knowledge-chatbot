@@ -9,6 +9,7 @@ from sentence_transformers import SentenceTransformer
 
 from backend.llm_factory import get_llm
 from backend.vector_store import get_vector_store
+from backend.prompts import build_grounded_prompt
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -110,21 +111,27 @@ def resolve_retrieval_question(question: str, history: list[dict[str, str]]) -> 
     return standalone or question
 
 
-def generate_answer(question: str, results: list[dict[str, Any]], history: list[dict[str, str]]) -> str:
+def generate_answer(
+    question: str,
+    results: list[dict[str, Any]],
+    history: list[dict[str, str]]
+) -> str:
+
     if not results:
-        return "I couldn't find relevant information in the company knowledge base."
-    prompt = (
-        "You are a company knowledge assistant. Answer only from the retrieved "
-        "company-document context. If the context does not answer the question, say "
-        "so clearly. Be concise and do not invent policy details.\n\n"
-        f"Retrieved context:\n{build_context(results)}\n\n"
-        f"Recent conversation (for conversational phrasing only):\n{_history_text(history) or '(none)'}\n\n"
-        f"Question: {question}"
+        return "I couldn't find that information in the company knowledge base."
+
+    context = build_context(results)
+    history_text = _history_text(history) or "(none)"
+
+    prompt = build_grounded_prompt(
+        question=question,
+        context=context,
+        history=history_text,
     )
+
     answer = _message_text(get_llm().invoke(prompt))
-    return answer or "I could not generate an answer from the retrieved documents."
 
-
+    return answer or "I couldn't find that information in the company knowledge base."
 def ask_question(question: str, history: list[dict[str, str]] | None = None) -> dict[str, Any]:
     """Retrieve company knowledge and answer using the configured LLM provider."""
     question = question.strip()

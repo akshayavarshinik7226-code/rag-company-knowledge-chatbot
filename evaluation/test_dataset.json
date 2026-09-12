@@ -1,0 +1,42 @@
+[
+  {
+    "question": "What are employee benefits?",
+    "ground_truth": "Employee benefits are forms of non-wage compensation provided to an employee by an employer in addition to their normal wage or salary."
+  },
+  {
+    "question": "What is the purpose of employee benefits?",
+    "ground_truth": "The purpose of employee benefits is to increase the economic security of staff members and improve worker retention across the organization."
+  },
+  {
+    "question": "What are some examples of employee benefits?",
+    "ground_truth": "Examples include housing, group insurance, disability income protection, retirement benefits, daycare, tuition reimbursement, sick leave, vacation, social security, and profit sharing."
+  },
+  {
+    "question": "What are the three types of content typically found in an employee handbook?",
+    "ground_truth": "Cultural content, general information, and case-specific content."
+  },
+  {
+    "question": "What information may an employee handbook contain about leave?",
+    "ground_truth": "It may contain information about holidays, PTO, sick leave, personal leave, military leave, bereavement leave, voting leave, and parental or medical leave."
+  },
+  {
+    "question": "Why should employee handbooks be updated regularly?",
+    "ground_truth": "Employee handbooks should be updated regularly because laws and regulations change."
+  },
+  {
+    "question": "What are human resource policies?",
+    "ground_truth": "Human resource policies are continuing guidelines describing the approach an organization intends to adopt in managing its people."
+  },
+  {
+    "question": "What is the difference between an HR policy and a procedure?",
+    "ground_truth": "An HR policy gives generalized guidance, while a procedure specifies precisely what action should be taken."
+  },
+  {
+    "question": "What are some purposes of HR policies and procedures?",
+    "ground_truth": "They provide clear communication, promote fair and equal treatment, give supervisors and managers guidelines, provide a basis for the employee handbook, support regular review, and provide context for training and orientation."
+  },
+  {
+    "question": "What are the advantages of setting up HR policies?",
+    "ground_truth": "HR policies help managers make decisions, reduce favoritism and discrimination, minimize bias, prompt decision-making, and promote consistent and fair treatment."
+  }
+]

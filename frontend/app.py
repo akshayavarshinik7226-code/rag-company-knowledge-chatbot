@@ -8,7 +8,7 @@ import streamlit as st
 
 st.set_page_config(page_title="Company Knowledge Chatbot", page_icon="🤖", layout="centered")
 BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000").rstrip("/")
-CHAT_TIMEOUT_SECONDS = 90
+CHAT_TIMEOUT_SECONDS = 240
 UPLOAD_TIMEOUT_SECONDS = 180
 
 st.title("🤖 Company Knowledge Chatbot")
