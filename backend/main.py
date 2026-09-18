@@ -80,6 +80,3 @@ async def upload_document(file: UploadFile = File(...)):
 app.include_router(chat_router)
 
 
-
-app.include_router(chat_router)
-
