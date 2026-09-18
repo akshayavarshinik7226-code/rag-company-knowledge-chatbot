@@ -377,34 +377,24 @@ def retrieve_with_query_expansion(
     final_top_k: int = FINAL_TOP_K
 ) -> tuple[list[dict[str, Any]], list[str]]:
     """
-    Expand the retrieval query, search each query, merge the results,
-    remove duplicates, and keep the strongest chunks.
+    Retrieve documents using the original question only.
+    This avoids an additional LLM call during retrieval.
     """
 
-    search_queries = expand_search_queries(
-        question,
-        max_queries=MAX_EXPANDED_QUERIES
-    )
-
-    if not search_queries:
+    if not question.strip():
         return [], []
 
-    all_results = []
-
-    for search_query in search_queries:
-        results = search_documents(
-            search_query,
-            top_k=top_k_per_query
-        )
-
-        all_results.extend(results)
+    results = search_documents(
+        question,
+        top_k=top_k_per_query
+    )
 
     merged_results = _merge_and_deduplicate_results(
-        all_results,
+        results,
         max_results=final_top_k
     )
 
-    return merged_results, search_queries
+    return merged_results, [question]
 
 
 def generate_answer(
