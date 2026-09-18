@@ -8,3 +8,6 @@ chroma_db/
 
 # Python test/cache files
 .pytest_cache/
+
+# FAISS vector database
+faiss_db/

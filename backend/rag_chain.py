@@ -36,16 +36,34 @@ class VectorStoreServiceError(RuntimeError):
     """Raised when the configured vector store cannot process a request."""
 
 
-print("Loading embedding model...")
+# The model is NOT loaded when the backend starts.
+# It will only be loaded when create_embedding() is actually called.
+embedding_model: SentenceTransformer | None = None
 
-embedding_model = SentenceTransformer(str(MODEL_PATH))
 
-print("Embedding model loaded successfully.")
+def get_embedding_model() -> SentenceTransformer:
+    """Load the embedding model only when it is actually needed."""
+
+    global embedding_model
+
+    if embedding_model is None:
+        print("Loading embedding model...")
+
+        embedding_model = SentenceTransformer(
+            str(MODEL_PATH)
+        )
+
+        print("Embedding model loaded successfully.")
+
+    return embedding_model
 
 
 def create_embedding(text: str) -> list[float]:
     """Convert text to a normalized 384-dimensional embedding."""
-    return embedding_model.encode(
+
+    model = get_embedding_model()
+
+    return model.encode(
         text,
         normalize_embeddings=True
     ).tolist()
@@ -81,7 +99,9 @@ def _prepare_documents(
     return prepared
 
 
-def add_documents(documents: list[dict[str, Any]]) -> int:
+def add_documents(
+    documents: list[dict[str, Any]]
+) -> int:
     """Embed and persist chunks in the configured vector store."""
 
     prepared = _prepare_documents(documents)
@@ -241,8 +261,8 @@ def expand_search_queries(
     """
     Generate alternative search queries for the same user question.
 
-    The original question is always retained. Generated queries are only
-    used for document retrieval and must not introduce new factual content.
+    The original question is always retained.
+    Generated queries are only used for document retrieval.
     """
 
     if not question.strip():
@@ -277,11 +297,9 @@ def expand_search_queries(
     for line in response.splitlines():
         cleaned = line.strip()
 
-        # Remove common numbering/bullet formatting.
         cleaned = cleaned.lstrip("-•* ")
 
         if cleaned:
-            # Remove simple numeric prefixes such as "1." or "2)".
             parts = cleaned.split(maxsplit=1)
 
             if (
@@ -325,9 +343,6 @@ def _merge_and_deduplicate_results(
 ) -> list[dict[str, Any]]:
     """
     Merge retrieval results from multiple queries and remove duplicate chunks.
-
-    Results are ordered by similarity score so that the strongest retrieved
-    chunks are passed to the answer-generation model.
     """
 
     unique_results = []
@@ -400,7 +415,10 @@ def generate_answer(
     """Generate a grounded answer using retrieved company knowledge."""
 
     if not results:
-        return "I couldn't find that information in the company knowledge base."
+        return (
+            "I couldn't find that information in the company "
+            "knowledge base."
+        )
 
     context = build_context(results)
 
