@@ -1,0 +1,95 @@
+{
+  "generated_at": "2026-09-17T18:12:26.990928",
+  "total_questions": 10,
+  "pipeline_errors": [],
+  "Faithfulness": {
+    "error": "ValueError(\"Unrecognized configuration class <class 'transformers.models.deprecated.nat.configuration_nat.NatConfig'> for this kind of AutoModel: AutoModelForSequenceClassification.\\nModel type should be one of AlbertConfig, ArceeConfig, BartConfig, BertConfig, BigBirdConfig, BigBirdPegasusConfig, BioGptConfig, BloomConfig, CamembertConfig, CanineConfig, LlamaConfig, ConvBertConfig, CTRLConfig, Data2VecTextConfig, DebertaConfig, DebertaV2Config, DeepseekV2Config, DeepseekV3Config, DiffLlamaConfig, DistilBertConfig, DogeConfig, ElectraConfig, ErnieConfig, ErnieMConfig, EsmConfig, Exaone4Config, FalconConfig, FlaubertConfig, FNetConfig, FunnelConfig, GemmaConfig, Gemma2Config, Gemma3Config, Gemma3TextConfig, GlmConfig, Glm4Config, GPT2Config, GPT2Config, GPTBigCodeConfig, GPTNeoConfig, GPTNeoXConfig, GptOssConfig, GPTJConfig, HeliumConfig, HunYuanDenseV1Config, HunYuanMoEV1Config, IBertConfig, JambaConfig, JetMoeConfig, LayoutLMConfig, LayoutLMv2Config, LayoutLMv3Config, LEDConfig, LiltConfig, LlamaConfig, LongformerConfig, LukeConfig, MarkupLMConfig, MBartConfig, MegaConfig, MegatronBertConfig, MiniMaxConfig, MinistralConfig, MistralConfig, MixtralConfig, MobileBertConfig, ModernBertConfig, ModernBertDecoderConfig, MPNetConfig, MptConfig, MraConfig, MT5Config, MvpConfig, NemotronConfig, NezhaConfig, NystromformerConfig, OpenLlamaConfig, OpenAIGPTConfig, OPTConfig, PerceiverConfig, PersimmonConfig, PhiConfig, Phi3Config, PhimoeConfig, PLBartConfig, QDQBertConfig, Qwen2Config, Qwen2MoeConfig, Qwen3Config, Qwen3MoeConfig, Qwen3NextConfig, ReformerConfig, RemBertConfig, RobertaConfig, RobertaPreLayerNormConfig, RoCBertConfig, RoFormerConfig, SeedOssConfig, SmolLM3Config, SqueezeBertConfig, StableLmConfig, Starcoder2Config, T5Config, T5GemmaConfig, TapasConfig, TransfoXLConfig, UMT5Config, XLMConfig, XLMRobertaConfig, XLMRobertaXLConfig, XLNetConfig, XmodConfig, YosoConfig, ZambaConfig, Zamba2Config.\")"
+  },
+  "Context Precision": {
+    "scores": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.9999999999,
+      0.9999999999,
+      0.0,
+      0.0
+    ],
+    "valid_scores": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.9999999999,
+      0.9999999999,
+      0.0,
+      0.0
+    ],
+    "average": 0.19999999998,
+    "evaluated_samples": 10,
+    "total_samples": 10
+  },
+  "Context Recall": {
+    "scores": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      0.0,
+      0.0
+    ],
+    "valid_scores": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      0.0,
+      0.0
+    ],
+    "average": 0.2,
+    "evaluated_samples": 10,
+    "total_samples": 10
+  },
+  "Answer Relevancy": {
+    "scores": [
+      0.9519194138456316,
+      0.9999999999998002,
+      0.9999999999997606,
+      0.9897731795518431,
+      0.0,
+      0.9999999999996677,
+      0.9999999999997354,
+      0.9999999999997563,
+      0.9653988516355967,
+      0.9999999999997407
+    ],
+    "valid_scores": [
+      0.9519194138456316,
+      0.9999999999998002,
+      0.9999999999997606,
+      0.9897731795518431,
+      0.0,
+      0.9999999999996677,
+      0.9999999999997354,
+      0.9999999999997563,
+      0.9653988516355967,
+      0.9999999999997407
+    ],
+    "average": 0.8907091445031533,
+    "evaluated_samples": 10,
+    "total_samples": 10
+  }
+}

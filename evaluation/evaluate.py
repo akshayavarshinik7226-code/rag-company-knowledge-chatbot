@@ -1,201 +1,230 @@
-"""RAGAS evaluation for the company knowledge chatbot."""
+﻿"""Task 16 - RAGAS evaluation of the RAG chatbot."""
 
 from __future__ import annotations
 
 import json
+import sys
+from datetime import datetime
 from pathlib import Path
+# Add the project root to Python's import path.
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from datasets import Dataset
 from langchain_huggingface import HuggingFaceEmbeddings
-
 from ragas import evaluate
 from ragas.embeddings import LangchainEmbeddingsWrapper
 from ragas.llms import LangchainLLMWrapper
 from ragas.metrics import (
-    Faithfulness,
+    FaithfulnesswithHHEM,
+    NonLLMContextPrecisionWithReference,
+    NonLLMContextRecall,
     ResponseRelevancy,
-    LLMContextPrecisionWithReference,
-    LLMContextRecall,
 )
 from ragas.run_config import RunConfig
 
 from backend.llm_factory import get_llm
-from backend.rag_chain import ask_question
 
-
-# ---------------------------------------------------------
-# Paths
-# ---------------------------------------------------------
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-DATASET_PATH = BASE_DIR / "evaluation" / "test_dataset.json"
 INPUT_PATH = BASE_DIR / "evaluation" / "ragas_input.json"
 RESULTS_PATH = BASE_DIR / "evaluation" / "ragas_results.json"
-
 MODEL_PATH = BASE_DIR / "models" / "all-MiniLM-L6-v2"
 
 
-# ---------------------------------------------------------
-# Helper functions
-# ---------------------------------------------------------
+def load_input() -> dict:
+    """Load the already-generated RAG evaluation data."""
 
-def load_test_dataset() -> list[dict]:
-    """Load the 10 evaluation questions and ground-truth answers."""
-    with open(DATASET_PATH, "r", encoding="utf-8") as file:
+    with open(INPUT_PATH, "r", encoding="utf-8") as file:
         return json.load(file)
 
 
 def save_json(path: Path, data: dict) -> None:
-    """Save JSON data."""
+    """Save results as valid JSON."""
+
     with open(path, "w", encoding="utf-8") as file:
-        json.dump(data, file, indent=2, ensure_ascii=False)
+        json.dump(
+            data,
+            file,
+            indent=2,
+            ensure_ascii=False,
+            allow_nan=False,
+        )
 
 
-def load_json(path: Path) -> dict:
-    """Load JSON data."""
-    with open(path, "r", encoding="utf-8") as file:
-        return json.load(file)
+def calculate_scores(dataframe, column_name: str) -> dict:
+    """Calculate valid scores and their average."""
 
+    raw_values = dataframe[column_name].tolist()
 
-def create_ragas_dataset(data: dict) -> Dataset:
-    """Convert saved RAG results into a HuggingFace Dataset."""
-    return Dataset.from_dict(
-        {
-            "question": data["question"],
-            "answer": data["answer"],
-            "contexts": data["contexts"],
-            "ground_truth": data["ground_truth"],
-        }
+    cleaned_scores = []
+    valid_scores = []
+
+    for value in raw_values:
+
+        try:
+            if value is None:
+                cleaned_scores.append(None)
+                continue
+
+            score = float(value)
+
+            if score != score:
+                cleaned_scores.append(None)
+                continue
+
+            cleaned_scores.append(score)
+            valid_scores.append(score)
+
+        except (TypeError, ValueError):
+            cleaned_scores.append(None)
+
+    average = (
+        sum(valid_scores) / len(valid_scores)
+        if valid_scores
+        else None
     )
 
+    return {
+        "scores": cleaned_scores,
+        "valid_scores": valid_scores,
+        "average": average,
+        "evaluated_samples": len(valid_scores),
+        "total_samples": len(raw_values),
+    }
 
-# ---------------------------------------------------------
-# Main
-# ---------------------------------------------------------
+
+def evaluate_metric(
+    dataset: Dataset,
+    metric,
+    metric_name: str,
+    column_name: str,
+    evaluator_llm=None,
+    evaluator_embeddings=None,
+):
+    """Run one RAGAS metric."""
+
+    print("\n==============================================")
+    print(f"EVALUATING: {metric_name}")
+    print("==============================================")
+
+    result = evaluate(
+        dataset=dataset,
+        metrics=[metric],
+        llm=evaluator_llm,
+        embeddings=evaluator_embeddings,
+        batch_size=1,
+        run_config=RunConfig(
+            timeout=90,
+            max_retries=0,
+            max_workers=1,
+        ),
+        raise_exceptions=False,
+        show_progress=True,
+    )
+
+    dataframe = result.to_pandas()
+
+    print("\nRAGAS result columns:")
+    print(list(dataframe.columns))
+
+    if column_name not in dataframe.columns:
+        raise RuntimeError(
+            f"Expected column '{column_name}' was not returned by RAGAS."
+        )
+
+    metric_result = calculate_scores(
+        dataframe,
+        column_name,
+    )
+
+    print(f"\n{metric_name} completed.")
+
+    if metric_result["average"] is not None:
+        print(
+            f"Average score: "
+            f"{metric_result['average']:.4f}"
+        )
+    else:
+        print("Average score: No valid scores")
+
+    print(
+        f"Valid samples: "
+        f"{metric_result['evaluated_samples']}/"
+        f"{metric_result['total_samples']}"
+    )
+
+    return metric_result
+
 
 def main() -> None:
 
-    # -----------------------------------------------------
-    # Load the 10-question evaluation dataset
-    # -----------------------------------------------------
+    print("\n==============================================")
+    print("TASK 16 RAGAS EVALUATION")
+    print("==============================================")
 
-    test_data = load_test_dataset()
-
-    print(f"Loaded {len(test_data)} evaluation questions.")
-
-
-    # -----------------------------------------------------
-    # STEP 1:
-    # Run the RAG pipeline ONLY if results were not already
-    # saved from an earlier run.
-    # -----------------------------------------------------
-
-    if INPUT_PATH.exists():
-
-        print("\n==============================================")
-        print("Loading previously saved RAG evaluation data")
-        print("==============================================")
-
-        saved_data = load_json(INPUT_PATH)
-
-        print(
-            f"Loaded saved results for "
-            f"{len(saved_data['question'])} questions."
+    if not INPUT_PATH.exists():
+        raise FileNotFoundError(
+            f"RAGAS input file not found: {INPUT_PATH}"
         )
+    data = load_input()
 
-    else:
+    questions = data["question"]
+    answers = data["answer"]
+    contexts = data["contexts"]
+    ground_truths = data["ground_truth"]
 
-        print("\n==============================================")
-        print("Running RAG pipeline for 10 questions")
-        print("==============================================")
+    # Load independent reference contexts for RAGAS context metrics.
+    reference_dataset_path = BASE_DIR / "evaluation" / "test_dataset.json"
 
-        questions = []
-        answers = []
-        contexts = []
-        ground_truths = []
+    with open(reference_dataset_path, "r", encoding="utf-8-sig") as file:
+        reference_data = json.load(file)
 
-        for index, item in enumerate(test_data, start=1):
+    reference_by_question = {
+        item["question"]: item["contexts"]
+        for item in reference_data
+    }
 
-            question = item["question"]
+    reference_contexts = []
 
-            print(
-                f"\n[{index}/{len(test_data)}] "
-                f"{question}"
+    for question in questions:
+        if question not in reference_by_question:
+            raise ValueError(
+                f"Reference context missing for question: {question}"
             )
 
-            try:
-                result = ask_question(question)
-
-                answer = result.get("answer", "")
-
-                retrieved_contexts = [
-                    context.get("text", "")
-                    for context in result.get("sources", [])
-                    if context.get("text")
-                ]
-
-                questions.append(question)
-                answers.append(answer)
-                contexts.append(retrieved_contexts)
-                ground_truths.append(item["ground_truth"])
-
-                print(
-                    f"    Answer: {answer[:180]}"
-                )
-
-                print(
-                    f"    Contexts retrieved: "
-                    f"{len(retrieved_contexts)}"
-                )
-
-            except Exception as error:
-
-                print(
-                    f"    RAG pipeline error: {error}"
-                )
-
-                questions.append(question)
-                answers.append(
-                    "I couldn't find that information "
-                    "in the company knowledge base."
-                )
-                contexts.append([])
-                ground_truths.append(item["ground_truth"])
-
-
-        # Save the RAG pipeline results.
-        saved_data = {
-            "question": questions,
-            "answer": answers,
-            "contexts": contexts,
-            "ground_truth": ground_truths,
-        }
-
-        save_json(INPUT_PATH, saved_data)
-
-        print("\n==============================================")
-        print("RAG pipeline completed")
-        print("==============================================")
-
-        print(
-            f"Saved RAG evaluation data to:\n"
-            f"{INPUT_PATH}"
+        reference_contexts.append(
+            reference_by_question[question]
         )
 
+    total = len(questions)
 
-    # -----------------------------------------------------
-    # Create RAGAS dataset
-    # -----------------------------------------------------
+    if total != 10:
+        raise ValueError(
+            f"Task 16 requires exactly 10 questions, but found {total}."
+        )
 
-    dataset = create_ragas_dataset(saved_data)
+    print(f"Loaded existing RAGAS input: {total} questions.")
+    print("Fresh RAG answers will NOT be generated again.")
 
+    dataset = Dataset.from_dict(
+        {
+            "user_input": questions,
+            "response": answers,
+            "retrieved_contexts": contexts,
+            "reference_contexts": reference_contexts,
+            "reference": ground_truths,
+        }
+    )
 
-    # -----------------------------------------------------
-    # Load local HuggingFace embeddings
-    # -----------------------------------------------------
+    # --------------------------------------------------
+    # Local evaluator embeddings
+    # --------------------------------------------------
 
-    print("\nLoading local HuggingFace embeddings...")
+    print("\nLoading local evaluator embeddings...")
 
     evaluator_embeddings = LangchainEmbeddingsWrapper(
         HuggingFaceEmbeddings(
@@ -205,280 +234,215 @@ def main() -> None:
 
     print("Evaluator embeddings loaded successfully.")
 
-
-    # -----------------------------------------------------
-    # RAGAS metrics
-    # -----------------------------------------------------
-
-    metrics = [
-        (
-            "Faithfulness",
-            Faithfulness(),
-            "faithfulness",
-        ),
-        (
-            "Answer Relevancy",
-            ResponseRelevancy(),
-            "answer_relevancy",
-        ),
-        (
-            "Context Precision",
-            LLMContextPrecisionWithReference(),
-            "context_precision",
-        ),
-        (
-            "Context Recall",
-            LLMContextRecall(),
-            "context_recall",
-        ),
-    ]
-
-
-    # -----------------------------------------------------
-    # Load previous metric results if available
-    # -----------------------------------------------------
-
-    if RESULTS_PATH.exists():
-
-        try:
-            final_results = load_json(RESULTS_PATH)
-
-        except Exception:
-            final_results = {}
-
-    else:
-        final_results = {}
-
-
-    # -----------------------------------------------------
-    # RAGAS configuration
-    # -----------------------------------------------------
-
-    run_config = RunConfig(
-        timeout=180,
-        max_retries=0,
-        max_workers=1,
-    )
-
-
-    # -----------------------------------------------------
-    # Evaluate each metric separately
-    # -----------------------------------------------------
-
-    for metric_name, metric, column_name in metrics:
-
-        # Do not repeat a metric that was already saved.
-        if metric_name in final_results:
-
-            print(
-                f"\n{metric_name} already has saved results."
-            )
-
-            print("Skipping this metric.")
-
-            continue
-
-
-        print("\n==============================================")
-        print(f"Evaluating: {metric_name}")
-        print("==============================================")
-
-
-        try:
-
-            # Create a fresh evaluator LLM for every metric.
-            # This helps avoid asyncio/event-loop problems
-            # when RAGAS runs multiple evaluations.
-            print("Loading evaluator LLM...")
-
-            evaluator_llm = LangchainLLMWrapper(
-                get_llm()
-            )
-
-            print("Evaluator LLM loaded successfully.")
-
-
-            # Run one metric.
-            result = evaluate(
-                dataset=dataset,
-                metrics=[metric],
-                llm=evaluator_llm,
-                embeddings=evaluator_embeddings,
-                batch_size=1,
-                run_config=run_config,
-                raise_exceptions=False,
-                show_progress=True,
-            )
-
-
-            # Convert result to DataFrame.
-            dataframe = result.to_pandas()
-
-
-            print(
-                "\nRAGAS result columns:"
-            )
-
-            print(
-                list(dataframe.columns)
-            )
-
-
-            # -------------------------------------------------
-            # Find the metric column.
-            # -------------------------------------------------
-
-            if column_name not in dataframe.columns:
-
-                print(
-                    f"\nCould not find expected column: "
-                    f"{column_name}"
-                )
-
-                print(
-                    "Available columns:",
-                    list(dataframe.columns),
-                )
-
-                continue
-
-
-            # Get individual scores.
-            raw_values = dataframe[column_name].tolist()
-
-
-            # Convert valid numerical values.
-            scores = []
-
-            for value in raw_values:
-
-                try:
-
-                    if value is None:
-                        continue
-
-                    score = float(value)
-
-                    # Ignore NaN and infinity.
-                    if score != score:
-                        continue
-
-                    scores.append(score)
-
-                except (TypeError, ValueError):
-
-                    continue
-
-
-            # Calculate average.
-            if scores:
-
-                average = sum(scores) / len(scores)
-
-            else:
-
-                average = None
-
-
-            # Save the metric.
-            final_results[metric_name] = {
-                "scores": raw_values,
-                "valid_scores": scores,
-                "average": average,
-                "evaluated_samples": len(scores),
-                "total_samples": len(raw_values),
-            }
-
-
-            # IMPORTANT:
-            # Save immediately after every metric.
-            save_json(
-                RESULTS_PATH,
-                final_results,
-            )
-
-
-            print(
-                f"\n{metric_name} completed."
-            )
-
-            if average is not None:
-
-                print(
-                    f"Average score: {average:.4f}"
-                )
-
-            else:
-
-                print(
-                    "Average score: No valid scores"
-                )
-
-            print(
-                f"Valid samples: "
-                f"{len(scores)}/{len(raw_values)}"
-            )
-
-            print(
-                f"Saved to:\n{RESULTS_PATH}"
-            )
-
-
-        except Exception as error:
-
-            print(
-                f"\n{metric_name} failed:"
-            )
-
-            print(
-                repr(error)
-            )
-
-            print(
-                "Continuing with the next metric..."
-            )
-
-
-    # -----------------------------------------------------
+    # --------------------------------------------------
+    # Results structure
+    # --------------------------------------------------
+
+    final_results = {
+        "generated_at": datetime.now().isoformat(),
+        "total_questions": total,
+        "pipeline_errors": data.get("errors", []),
+    }
+
+    # --------------------------------------------------
+    # 1. Faithfulness
+    #
+    # HHEM performs local NLI-based evaluation and avoids
+    # using the slow Qwen model as a judge.
+    # --------------------------------------------------
+
+    try:
+
+        faithfulness_metric = FaithfulnesswithHHEM(
+            device="cpu",
+            batch_size=10,
+        )
+
+        final_results["Faithfulness"] = evaluate_metric(
+            dataset=dataset,
+            metric=faithfulness_metric,
+            metric_name="Faithfulness",
+            column_name="faithfulness_with_hhem",
+            evaluator_embeddings=evaluator_embeddings,
+        )
+
+        save_json(
+            RESULTS_PATH,
+            final_results,
+        )
+
+    except Exception as error:
+
+        print("\nFaithfulness failed:")
+        print(repr(error))
+
+        final_results["Faithfulness"] = {
+            "error": repr(error)
+        }
+
+        save_json(
+            RESULTS_PATH,
+            final_results,
+        )
+
+    # --------------------------------------------------
+    # 2. Context Precision
+    #
+    # Non-LLM metric: no Qwen evaluation required.
+    # --------------------------------------------------
+
+    try:
+
+        context_precision_metric = (
+            NonLLMContextPrecisionWithReference()
+        )
+
+        final_results["Context Precision"] = evaluate_metric(
+            dataset=dataset,
+            metric=context_precision_metric,
+            metric_name="Context Precision",
+            column_name="non_llm_context_precision_with_reference",
+            evaluator_embeddings=evaluator_embeddings,
+        )
+
+        save_json(
+            RESULTS_PATH,
+            final_results,
+        )
+
+    except Exception as error:
+
+        print("\nContext Precision failed:")
+        print(repr(error))
+
+        final_results["Context Precision"] = {
+            "error": repr(error)
+        }
+
+        save_json(
+            RESULTS_PATH,
+            final_results,
+        )
+
+    # --------------------------------------------------
+    # 3. Context Recall
+    #
+    # Non-LLM metric: no Qwen evaluation required.
+    # --------------------------------------------------
+
+    try:
+
+        context_recall_metric = NonLLMContextRecall()
+
+        final_results["Context Recall"] = evaluate_metric(
+            dataset=dataset,
+            metric=context_recall_metric,
+            metric_name="Context Recall",
+            column_name="non_llm_context_recall",
+            evaluator_embeddings=evaluator_embeddings,
+        )
+
+        save_json(
+            RESULTS_PATH,
+            final_results,
+        )
+
+    except Exception as error:
+
+        print("\nContext Recall failed:")
+        print(repr(error))
+
+        final_results["Context Recall"] = {
+            "error": repr(error)
+        }
+
+        save_json(
+            RESULTS_PATH,
+            final_results,
+        )
+
+    # --------------------------------------------------
+    # 4. Answer Relevancy
+    #
+    # This metric still requires an LLM judge.
+    # We run it separately so the other three metrics
+    # are not blocked by the local Qwen evaluator.
+    # --------------------------------------------------
+
+    try:
+
+        print("\nLoading evaluator LLM for Answer Relevancy...")
+
+        evaluator_llm = LangchainLLMWrapper(
+            get_llm()
+        )
+
+        print("Evaluator LLM loaded successfully.")
+
+        answer_relevancy_metric = ResponseRelevancy()
+
+        final_results["Answer Relevancy"] = evaluate_metric(
+            dataset=dataset,
+            metric=answer_relevancy_metric,
+            metric_name="Answer Relevancy",
+            column_name="answer_relevancy",
+            evaluator_llm=evaluator_llm,
+            evaluator_embeddings=evaluator_embeddings,
+        )
+
+        save_json(
+            RESULTS_PATH,
+            final_results,
+        )
+
+    except Exception as error:
+
+        print("\nAnswer Relevancy failed:")
+        print(repr(error))
+
+        final_results["Answer Relevancy"] = {
+            "error": repr(error)
+        }
+
+        save_json(
+            RESULTS_PATH,
+            final_results,
+        )
+
+    # --------------------------------------------------
     # Final summary
-    # -----------------------------------------------------
+    # --------------------------------------------------
 
     print("\n==============================================")
-    print("RAGAS evaluation finished")
+    print("TASK 16 RAGAS EVALUATION FINISHED")
     print("==============================================")
 
+    for metric_name, result in final_results.items():
 
-    if final_results:
+        if not isinstance(result, dict):
+            continue
 
-        for metric_name, result in final_results.items():
+        average = result.get("average")
 
-            average = result.get("average")
+        if average is not None:
 
-            if average is not None:
-
-                print(
-                    f"{metric_name}: "
-                    f"{average:.4f}"
-                )
-
-            else:
-
-                print(
-                    f"{metric_name}: "
-                    f"No valid score"
-                )
-
+            print(
+                f"{metric_name}: "
+                f"{average:.4f} "
+                f"({result.get('evaluated_samples')}/"
+                f"{result.get('total_samples')})"
+            )
 
     print("\nFiles:")
-
-    print(
-        f"RAGAS input:\n{INPUT_PATH}"
-    )
-
-    print(
-        f"RAGAS results:\n{RESULTS_PATH}"
-    )
+    print(f"Input:   {INPUT_PATH}")
+    print(f"Results: {RESULTS_PATH}")
 
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
+

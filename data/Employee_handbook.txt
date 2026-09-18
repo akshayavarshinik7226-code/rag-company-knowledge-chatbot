@@ -1,4 +1,4 @@
-Employee handbook
+$env:PYTHONPATH="."; python evaluation\evaluate.pyEmployee handbook
 An employee handbook, sometimes also known as an employee manual, staff handbook, or company
 policy manual, is a book given to employees by an employer.
 The employee handbook can be used to bring together employment and job-related information which

@@ -13,3 +13,4 @@ python-dotenv
 pypdf
 docx2txt
 faiss-cpu
+slowapi

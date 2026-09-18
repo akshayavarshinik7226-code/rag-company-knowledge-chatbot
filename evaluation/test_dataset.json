@@ -1,42 +1,73 @@
-[
+﻿[
   {
     "question": "What are employee benefits?",
-    "ground_truth": "Employee benefits are forms of non-wage compensation provided to an employee by an employer in addition to their normal wage or salary."
+    "ground_truth": "Employee benefits include various types of non-wage compensation provided to an employee by an employer in addition to their normal wage or salary.",
+    "contexts": [
+      "Employee benefits and benefits in kind, also called fringe benefits, perquisites, or perks, include various types of non-wage compensation provided to an employee by an employer in addition to their normal wage or salary. Instances where an employee exchanges cash wages for some other form of benefit is generally referred to as a salary packaging or salary exchange arrangement. In most countries, most kinds of employee benefits are taxable to at least some degree."
+    ]
   },
   {
     "question": "What is the purpose of employee benefits?",
-    "ground_truth": "The purpose of employee benefits is to increase the economic security of staff members and improve worker retention across the organization."
+    "ground_truth": "The purpose of employee benefits is to increase the economic security of staff members and improve worker retention across the organization.",
+    "contexts": [
+      "The purpose of employee benefits is to increase the economic security of staff members, and in doing so, improve worker retention across the organization. As such, it is one component of reward management."
+    ]
   },
   {
     "question": "What are some examples of employee benefits?",
-    "ground_truth": "Examples include housing, group insurance, disability income protection, retirement benefits, daycare, tuition reimbursement, sick leave, vacation, social security, and profit sharing."
+    "ground_truth": "Examples include housing, group insurance, disability income protection, retirement benefits, daycare, tuition reimbursement, sick leave, vacation, social security, profit sharing, employer student loan contributions, and other specialized benefits.",
+    "contexts": [
+      "Examples of these benefits include: housing (employer-provided or employer-paid) furnished or not, with or without free utilities; group insurance (health, dental, life, etc.); disability income protection; retirement benefits; daycare; tuition reimbursement; sick leave; vacation (paid and unpaid); social security; profit sharing; employer student loan contributions; conveyancing; long service leave; domestic help (servants); and other specialized benefits."
+    ]
   },
   {
     "question": "What are the three types of content typically found in an employee handbook?",
-    "ground_truth": "Cultural content, general information, and case-specific content."
+    "ground_truth": "The three types are Cultural, General Information, and Case-Specific.",
+    "contexts": [
+      "The employee handbook can be used to bring together employment and job-related information which employees need to know. It typically has three types of content: Cultural: A welcome statement, the company's mission or purpose, company values, and more. General Information: holiday arrangements, company perks, policies not required by law, policy summaries, and more. Case-Specific: company policies, rules, disciplinary and grievance procedures, and other information modeled after employment laws or regulations."
+    ]
   },
   {
     "question": "What information may an employee handbook contain about leave?",
-    "ground_truth": "It may contain information about holidays, PTO, sick leave, personal leave, military leave, bereavement leave, voting leave, and parental or medical leave."
+    "ground_truth": "It may contain information about holidays, paid time off, sick time, personal leave, military leave, bereavement, voting leave, and potentially FMLA and parental or medical leave policies.",
+    "contexts": [
+      "Information about different types of leave, including holidays, paid time off (PTO), sick time, personal leave, military leave, bereavement, and voting leave. If the employer is covered by the U.S. Family and Medical Leave Act of 1993 - generally 50 or more employees - a handbook usually contains information about FMLA and often includes specific policies for parental and medical leave."
+    ]
   },
   {
     "question": "Why should employee handbooks be updated regularly?",
-    "ground_truth": "Employee handbooks should be updated regularly because laws and regulations change."
+    "ground_truth": "Employee handbooks should be updated regularly because laws and regulations change.",
+    "contexts": [
+      "Revisions to an employee handbook vary from company to company. At many larger companies, a revised handbook comes out annually or at other regular intervals. It is recommended that handbooks be updated regularly as laws and regulations change."
+    ]
   },
   {
     "question": "What are human resource policies?",
-    "ground_truth": "Human resource policies are continuing guidelines describing the approach an organization intends to adopt in managing its people."
+    "ground_truth": "Human resource policies are continuing guidelines on the approach an organization intends to adopt in managing its people.",
+    "contexts": [
+      "Human resource policies are continuing guidelines on the approach of which an organization intends to adopt in managing its people. They represent specific guidelines to HR managers on various matters concerning employment and state the intent of the organization on different aspects of Human Resource management such as recruitment, promotion, compensation, training, selections etc. They therefore serve as a reference point when human resources management practices are being developed or when decisions are being made about an organization's workforce."
+    ]
   },
   {
     "question": "What is the difference between an HR policy and a procedure?",
-    "ground_truth": "An HR policy gives generalized guidance, while a procedure specifies precisely what action should be taken."
+    "ground_truth": "An HR policy provides generalized guidance on the organization's approach to employment matters, while a procedure specifies precisely what action should be taken in line with the policies.",
+    "contexts": [
+      "A good HR policy provides generalized guidance on the approach adopted by the organization, and therefore its employees, concerning various aspects of employment. A procedure spells out precisely what action should be taken in line with the policies."
+    ]
   },
   {
     "question": "What are some purposes of HR policies and procedures?",
-    "ground_truth": "They provide clear communication, promote fair and equal treatment, give supervisors and managers guidelines, provide a basis for the employee handbook, support regular review, and provide context for training and orientation."
+    "ground_truth": "They provide clear communication about conditions of employment, support fair and equal treatment, guide supervisors and managers, support development of the employee handbook, provide a basis for reviewing changes affecting employees, and support supervisor training and employee orientation programs.",
+    "contexts": [
+      "In actuality, policies and procedures serve a number of purposes: They provide clear communication between the organization and their employees regarding their condition of employment. They form a basis for treating all employees fairly and equally. They are a set of guidelines for supervisors and managers. They create a basis for developing the employee handbook. They establish a basis for regularly reviewing possible changes affecting employees. They form a context for supervisor training programs and employee orientation programs."
+    ]
   },
   {
     "question": "What are the advantages of setting up HR policies?",
-    "ground_truth": "HR policies help managers make decisions, reduce favoritism and discrimination, minimize bias, prompt decision-making, and promote consistent and fair treatment."
+    "ground_truth": "They help managers make decisions without consulting superiors, support employee welfare and good employer-employee relationships by reducing favoritism and discrimination, minimize managerial bias, ensure prompt decision-making, and establish consistency and fair treatment.",
+    "contexts": [
+      "The following advantages are achieved by setting up HR policies: They help managers at various levels of decision making to make decisions without consulting their superiors. Subordinates are more willing to accept responsibility because policies indicate what is expected of them and they can quote a written policy to justify their actions. They ensure long term welfare of employees and makes for a good employer-employee relationship as favoritism and discrimination are reduced. Well-established policies ensure uniform and consistent treatment of all employees throughout the organization. They lay down the guidelines pursued in the organization and thereby minimizes the personal bias of managers. They ensure prompt action for taking decisions because the policies serve as standards to be followed. They prevent the wastage of time and energy involved in repeated analyses for solving problems of a similar nature. They establish consistency in the application of the policies over a period of time so that each one in the organization gets a fair and just treatment. Employees know what action to expect in circumstances covered by the policies. Policies set patterns of behavior and permit employees to work more confidently."
+    ]
   }
 ]
+
