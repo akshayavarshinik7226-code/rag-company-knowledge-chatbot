@@ -1,10 +1,31 @@
 """Streamlit interface for the Company Knowledge Chatbot."""
 
-import os
+from pathlib import Path
+import sys
 
-import requests
+# ------------------------------------------------------------
+# Make the project root available for backend imports
+# ------------------------------------------------------------
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+
 import streamlit as st
 
+from backend.ingest import ingest_file
+from backend.rag_chain import (
+    LLMServiceError,
+    VectorStoreServiceError,
+    ask_question,
+)
+
+
+# ------------------------------------------------------------
+# Page configuration
+# ------------------------------------------------------------
 
 st.set_page_config(
     page_title="Company Knowledge Chatbot",
@@ -12,24 +33,22 @@ st.set_page_config(
     layout="centered",
 )
 
-BACKEND_URL = os.getenv(
-    "BACKEND_URL",
-    "http://127.0.0.1:8000",
-).rstrip("/")
 
-CHAT_TIMEOUT_SECONDS = 240
-UPLOAD_TIMEOUT_SECONDS = 180
-
-st.title("🤖 Company Knowledge Chatbot")
-st.caption("Ask questions about company policies and documents.")
-
+# ------------------------------------------------------------
+# Session state
+# ------------------------------------------------------------
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 
+# ------------------------------------------------------------
+# Helper: display sources
+# ------------------------------------------------------------
+
 def render_sources(sources):
     """Display retrieved source chunks."""
+
     if not sources:
         return
 
@@ -53,184 +72,186 @@ def render_sources(sources):
                 label += f" — similarity {score:.4f}"
 
             st.markdown(label)
-            st.code(source.get("text", ""), language=None)
+            st.code(
+                source.get("text", ""),
+                language=None,
+            )
 
 
-def backend_detail(response, fallback):
-    """Get an error message returned by FastAPI."""
-    try:
-        data = response.json()
-        return data.get("detail") or data.get("message") or fallback
-    except (ValueError, requests.RequestException):
-        return fallback
+# ------------------------------------------------------------
+# Main interface
+# ------------------------------------------------------------
+
+st.title("🤖 Company Knowledge Chatbot")
+
+st.caption(
+    "Ask questions about company policies and documents."
+)
 
 
-# Display previous messages.
+# ------------------------------------------------------------
+# Display previous conversation
+# ------------------------------------------------------------
+
 for message in st.session_state.messages:
+
     with st.chat_message(message["role"]):
+
         st.markdown(message["content"])
 
         if message["role"] == "assistant":
-            render_sources(message.get("sources", []))
+            render_sources(
+                message.get("sources", [])
+            )
 
 
-# Chat section.
+# ------------------------------------------------------------
+# Chat input
+# ------------------------------------------------------------
+
 question = st.chat_input(
     "Ask a question about the company documents..."
 )
 
+
 if question:
 
-    history = [
-        {
-            "role": message["role"],
-            "content": message["content"],
-        }
-        for message in st.session_state.messages[-6:]
-        if message["role"] in {"user", "assistant"}
-    ]
+    question = question.strip()
 
-    st.session_state.messages.append(
-        {
-            "role": "user",
-            "content": question,
-        }
-    )
+    if not question:
 
-    with st.chat_message("user"):
-        st.markdown(question)
+        st.warning("Please enter a question.")
 
-    with st.chat_message("assistant"):
+    else:
 
-        try:
+        # Keep only the recent conversation history
+        history = [
+            {
+                "role": message["role"],
+                "content": message["content"],
+            }
+            for message in st.session_state.messages[-6:]
+            if message["role"] in {"user", "assistant"}
+        ]
 
-            with st.spinner("Searching company documents..."):
+        # Store user message
+        st.session_state.messages.append(
+            {
+                "role": "user",
+                "content": question,
+            }
+        )
 
-                response = requests.post(
-                    f"{BACKEND_URL}/chat",
-                    json={
-                        "question": question,
-                        "history": history,
-                    },
-                    timeout=CHAT_TIMEOUT_SECONDS,
-                )
+        # Display user message
+        with st.chat_message("user"):
+            st.markdown(question)
 
-            if not response.ok:
-                raise RuntimeError(
-                    backend_detail(
-                        response,
-                        "Backend returned an error.",
+        # Generate answer
+        with st.chat_message("assistant"):
+
+            try:
+
+                with st.spinner(
+                    "Searching company documents..."
+                ):
+
+                    result = ask_question(
+                        question=question,
+                        history=history,
                     )
+
+                answer = result.get(
+                    "answer",
+                    "No answer was returned.",
                 )
 
-            payload = response.json()
+                sources = result.get(
+                    "sources",
+                    [],
+                )
 
-            answer = payload.get(
-                "answer",
-                "No answer was returned.",
-            )
+                st.markdown(answer)
 
-            sources = payload.get(
-                "sources",
-                [],
-            )
+                render_sources(sources)
 
-            st.markdown(answer)
-            render_sources(sources)
+                # Store assistant response
+                st.session_state.messages.append(
+                    {
+                        "role": "assistant",
+                        "content": answer,
+                        "sources": sources,
+                    }
+                )
 
-            st.session_state.messages.append(
-                {
-                    "role": "assistant",
-                    "content": answer,
-                    "sources": sources,
-                }
-            )
+            except LLMServiceError:
 
-        except requests.exceptions.Timeout:
+                error = (
+                    "The configured LLM provider is currently "
+                    "unavailable. Please try again later."
+                )
 
-            error = (
-                "The backend took too long to respond. "
-                "Please try again."
-            )
+                st.error(error)
 
-            st.error(error)
+                st.session_state.messages.append(
+                    {
+                        "role": "assistant",
+                        "content": error,
+                        "sources": [],
+                    }
+                )
 
-            st.session_state.messages.append(
-                {
-                    "role": "assistant",
-                    "content": error,
-                    "sources": [],
-                }
-            )
+            except VectorStoreServiceError:
 
-        except requests.exceptions.ConnectionError:
+                error = (
+                    "The company knowledge base is currently "
+                    "unavailable. Please try again later."
+                )
 
-            error = (
-                "Could not connect to FastAPI. "
-                "Make sure the backend is running."
-            )
+                st.error(error)
 
-            st.error(error)
+                st.session_state.messages.append(
+                    {
+                        "role": "assistant",
+                        "content": error,
+                        "sources": [],
+                    }
+                )
 
-            st.session_state.messages.append(
-                {
-                    "role": "assistant",
-                    "content": error,
-                    "sources": [],
-                }
-            )
+            except Exception as error:
 
-        except RuntimeError as error:
+                error_message = (
+                    "An unexpected error occurred while "
+                    "processing your question."
+                )
 
-            st.error(str(error))
+                st.error(error_message)
 
-            st.session_state.messages.append(
-                {
-                    "role": "assistant",
-                    "content": str(error),
-                    "sources": [],
-                }
-            )
+                # Print technical error in terminal for debugging
+                print(
+                    "Unexpected Streamlit error:",
+                    repr(error),
+                )
 
-        except ValueError:
-
-            error = "The backend returned an invalid response."
-
-            st.error(error)
-
-            st.session_state.messages.append(
-                {
-                    "role": "assistant",
-                    "content": error,
-                    "sources": [],
-                }
-            )
-
-        except requests.RequestException:
-
-            error = (
-                "A network error occurred while contacting "
-                "the backend."
-            )
-
-            st.error(error)
-
-            st.session_state.messages.append(
-                {
-                    "role": "assistant",
-                    "content": error,
-                    "sources": [],
-                }
-            )
+                st.session_state.messages.append(
+                    {
+                        "role": "assistant",
+                        "content": error_message,
+                        "sources": [],
+                    }
+                )
 
 
-# Document upload section.
-st.sidebar.header("Document Upload")
+# ------------------------------------------------------------
+# Sidebar - Document Upload
+# ------------------------------------------------------------
+
+st.sidebar.header("📄 Document Upload")
 
 uploaded_file = st.sidebar.file_uploader(
     "Upload PDF, TXT, or DOCX",
     type=["pdf", "txt", "docx"],
 )
+
 
 if uploaded_file is not None:
 
@@ -242,63 +263,75 @@ if uploaded_file is not None:
                 "Uploading and indexing..."
             ):
 
-                response = requests.post(
-                    f"{BACKEND_URL}/upload",
-                    files={
-                        "file": (
-                            uploaded_file.name,
-                            uploaded_file.getvalue(),
-                            uploaded_file.type,
-                        )
-                    },
-                    timeout=UPLOAD_TIMEOUT_SECONDS,
+                data_dir = PROJECT_ROOT / "data"
+
+                data_dir.mkdir(
+                    parents=True,
+                    exist_ok=True,
                 )
 
-            if not response.ok:
-                raise RuntimeError(
-                    backend_detail(
-                        response,
-                        "Upload failed.",
-                    )
+                # Prevent path traversal
+                safe_filename = Path(
+                    uploaded_file.name
+                ).name
+
+                file_path = data_dir / safe_filename
+
+                # Save uploaded file
+                file_path.write_bytes(
+                    uploaded_file.getvalue()
                 )
 
-            payload = response.json()
-
-            st.sidebar.success(
-                payload.get(
-                    "message",
-                    "Document uploaded successfully.",
+                # Directly index through the RAG pipeline
+                indexed_chunks = ingest_file(
+                    file_path
                 )
-            )
 
-            indexed_chunks = payload.get(
-                "indexed_chunks"
-            )
+            if not indexed_chunks:
 
-            if indexed_chunks is not None:
+                st.sidebar.error(
+                    "No readable text was found in the uploaded file."
+                )
+
+            else:
+
+                st.sidebar.success(
+                    "Document uploaded and indexed successfully."
+                )
+
                 st.sidebar.info(
                     f"Indexed chunks: {indexed_chunks}"
                 )
 
-        except requests.exceptions.Timeout:
+        except VectorStoreServiceError:
 
             st.sidebar.error(
-                "Upload timed out. Please try again."
+                "The company knowledge base is currently unavailable."
             )
 
-        except requests.exceptions.ConnectionError:
+        except Exception as error:
 
             st.sidebar.error(
-                "Could not connect to FastAPI. "
-                "Make sure the backend is running."
+                "Upload and indexing failed. "
+                "Please try again."
             )
 
-        except RuntimeError as error:
-
-            st.sidebar.error(str(error))
-
-        except requests.RequestException:
-
-            st.sidebar.error(
-                "A network error occurred during upload."
+            print(
+                "Upload/indexing error:",
+                repr(error),
             )
+
+
+# ------------------------------------------------------------
+# Sidebar - Information
+# ------------------------------------------------------------
+
+st.sidebar.divider()
+
+st.sidebar.caption(
+    "Company Knowledge Chatbot"
+)
+
+st.sidebar.caption(
+    "RAG-based document question answering"
+)

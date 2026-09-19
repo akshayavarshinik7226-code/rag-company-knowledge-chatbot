@@ -9,6 +9,7 @@ langchain-community
 langchain-text-splitters
 langchain-ollama
 langchain-openai
+langchain-google-genai
 python-dotenv
 pypdf
 docx2txt

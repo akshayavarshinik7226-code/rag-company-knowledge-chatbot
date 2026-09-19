@@ -397,48 +397,40 @@ def retrieve_with_query_expansion(
     return merged_results, [question]
 
 
-def generate_answer(
-    question: str,
-    results: list[dict[str, Any]],
-    history: list[dict[str, str]]
-) -> str:
-    """Generate a grounded answer using retrieved company knowledge."""
+def generate_answer(question: str, documents: list[dict], history: list[dict]) -> str:
+    """Generate a grounded answer from the retrieved company documents."""
 
-    if not results:
-        return (
-            "I couldn't find that information in the company "
-            "knowledge base."
-        )
-
-    context = build_context(results)
-
-    history_text = (
-        _history_text(history)
-        or "(none)"
-    )
-
+    context = build_context(documents)
     prompt = build_grounded_prompt(
         question=question,
         context=context,
-        history=history_text,
+        history=_history_text(history),
     )
 
     try:
-        answer = _message_text(
-            get_llm().invoke(prompt)
-        )
+        response = get_llm().invoke(prompt)
+
+        content = response.content
+
+        # Gemini may return structured content such as:
+        # [{"type": "text", "text": "..."}]
+        if isinstance(content, list):
+            text_parts = []
+
+            for item in content:
+                if isinstance(item, dict) and item.get("type") == "text":
+                    text_parts.append(item.get("text", ""))
+                elif isinstance(item, str):
+                    text_parts.append(item)
+
+            return "\n".join(part for part in text_parts if part).strip()
+
+        return str(content).strip()
 
     except Exception as error:
         raise LLMServiceError(
             "The configured LLM provider is currently unavailable."
         ) from error
-
-    return (
-        answer
-        or "I couldn't find that information in the company knowledge base."
-    )
-
-
 def ask_question(
     question: str,
     history: list[dict[str, str]] | None = None
