@@ -5,6 +5,8 @@ streamlit
 requests
 chromadb
 sentence-transformers
+torch
+torchvision
 langchain-community
 langchain-text-splitters
 langchain-ollama
