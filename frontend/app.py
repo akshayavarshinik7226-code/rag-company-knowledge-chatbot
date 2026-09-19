@@ -3,9 +3,9 @@
 from pathlib import Path
 import sys
 
-# ------------------------------------------------------------
-# Make the project root available for backend imports
-# ------------------------------------------------------------
+# ============================================================
+# Project path
+# ============================================================
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -13,9 +13,15 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 
+# ============================================================
+# Imports
+# ============================================================
+
 import streamlit as st
 
 from backend.ingest import ingest_file
+from backend.vector_store import get_vector_store
+
 from backend.rag_chain import (
     LLMServiceError,
     VectorStoreServiceError,
@@ -23,9 +29,9 @@ from backend.rag_chain import (
 )
 
 
-# ------------------------------------------------------------
+# ============================================================
 # Page configuration
-# ------------------------------------------------------------
+# ============================================================
 
 st.set_page_config(
     page_title="Company Knowledge Chatbot",
@@ -34,21 +40,42 @@ st.set_page_config(
 )
 
 
-# ------------------------------------------------------------
+# ============================================================
+# Automatically build knowledge base
+# ============================================================
+
+try:
+    vector_store = get_vector_store()
+
+    # Only ingest documents when the vector database is empty.
+    if vector_store.count() == 0:
+        data_dir = PROJECT_ROOT / "data"
+
+        if data_dir.exists():
+            for file_path in data_dir.iterdir():
+                if (
+                    file_path.is_file()
+                    and file_path.suffix.lower() in {".pdf", ".txt", ".docx"}
+                ):
+                    ingest_file(file_path)
+
+except Exception as error:
+    print("Automatic knowledge-base initialization error:", repr(error))
+
+
+# ============================================================
 # Session state
-# ------------------------------------------------------------
+# ============================================================
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 
-# ------------------------------------------------------------
-# Helper: display sources
-# ------------------------------------------------------------
+# ============================================================
+# Source display
+# ============================================================
 
 def render_sources(sources):
-    """Display retrieved source chunks."""
-
     if not sources:
         return
 
@@ -72,15 +99,16 @@ def render_sources(sources):
                 label += f" — similarity {score:.4f}"
 
             st.markdown(label)
+
             st.code(
                 source.get("text", ""),
                 language=None,
             )
 
 
-# ------------------------------------------------------------
+# ============================================================
 # Main interface
-# ------------------------------------------------------------
+# ============================================================
 
 st.title("🤖 Company Knowledge Chatbot")
 
@@ -89,9 +117,9 @@ st.caption(
 )
 
 
-# ------------------------------------------------------------
-# Display previous conversation
-# ------------------------------------------------------------
+# ============================================================
+# Display previous messages
+# ============================================================
 
 for message in st.session_state.messages:
 
@@ -105,9 +133,9 @@ for message in st.session_state.messages:
             )
 
 
-# ------------------------------------------------------------
+# ============================================================
 # Chat input
-# ------------------------------------------------------------
+# ============================================================
 
 question = st.chat_input(
     "Ask a question about the company documents..."
@@ -124,7 +152,6 @@ if question:
 
     else:
 
-        # Keep only the recent conversation history
         history = [
             {
                 "role": message["role"],
@@ -142,7 +169,6 @@ if question:
             }
         )
 
-        # Display user message
         with st.chat_message("user"):
             st.markdown(question)
 
@@ -174,7 +200,6 @@ if question:
 
                 render_sources(sources)
 
-                # Store assistant response
                 st.session_state.messages.append(
                     {
                         "role": "assistant",
@@ -226,7 +251,6 @@ if question:
 
                 st.error(error_message)
 
-                # Print technical error in terminal for debugging
                 print(
                     "Unexpected Streamlit error:",
                     repr(error),
@@ -241,9 +265,9 @@ if question:
                 )
 
 
-# ------------------------------------------------------------
-# Sidebar - Document Upload
-# ------------------------------------------------------------
+# ============================================================
+# Sidebar - document upload
+# ============================================================
 
 st.sidebar.header("📄 Document Upload")
 
@@ -270,19 +294,16 @@ if uploaded_file is not None:
                     exist_ok=True,
                 )
 
-                # Prevent path traversal
                 safe_filename = Path(
                     uploaded_file.name
                 ).name
 
                 file_path = data_dir / safe_filename
 
-                # Save uploaded file
                 file_path.write_bytes(
                     uploaded_file.getvalue()
                 )
 
-                # Directly index through the RAG pipeline
                 indexed_chunks = ingest_file(
                     file_path
                 )
@@ -312,8 +333,7 @@ if uploaded_file is not None:
         except Exception as error:
 
             st.sidebar.error(
-                "Upload and indexing failed. "
-                "Please try again."
+                "Upload/indexing failed. Please try again."
             )
 
             print(
@@ -322,9 +342,9 @@ if uploaded_file is not None:
             )
 
 
-# ------------------------------------------------------------
-# Sidebar - Information
-# ------------------------------------------------------------
+# ============================================================
+# Sidebar footer
+# ============================================================
 
 st.sidebar.divider()
 
